@@ -1,0 +1,54 @@
+#!/bin/bash
+
+TOP_DIR=4
+MID_DIR=5
+BOTTOM_DIR=10
+FILE_NUM=50000
+
+
+genfolder()
+{
+    local index=$1
+    local TOP_DIR=$2
+    local MID_DIR=$3
+    local BOTTOM_DIR=$4
+    local top=$((index/MID_DIR/BOTTOM_DIR))
+    local mid=$((index%(MID_DIR*BOTTOM_DIR)/BOTTOM_DIR))
+    local bottom=$((index%(MID_DIR*BOTTOM_DIR)%BOTTOM_DIR))
+
+    mkdir -p $top/$mid/$bottom
+}
+
+export -f genfolder 
+
+
+genfile()
+{
+    
+    local index=$1
+    local TOP_DIR=$2
+    local MID_DIR=$3
+    local BOTTOM_DIR=$4
+    local FILE_NUM=$5
+
+    local top=$((index/MID_DIR/BOTTOM_DIR/FILE_NUM))
+    local mid=$((index%(MID_DIR*BOTTOM_DIR*FILE_NUM)/BOTTOM_DIR/FILE_NUM))
+    local bottom=$((index%(MID_DIR*BOTTOM_DIR*FILE_NUM)%(BOTTOM_DIR*FILE_NUM)/FILE_NUM))
+    local file=$((index%(MID_DIR*BOTTOM_DIR*FILE_NUM)%(BOTTOM_DIR*FILE_NUM)%FILE_NUM))
+   
+    echo $index  $top $mid $bottom $file
+ 
+    
+    dd if=/dev/zero of=$top/$mid/$bottom/$file bs=1M count=50 > /dev/null 2>&1
+}
+
+export  -f genfile 
+
+folder_total=$((TOP_DIR*MID_DIR*BOTTOM_DIR))
+seq 0 $((folder_total-1)) | shuf | xargs  -I{}  -P 100 bash -c "genfolder {} $TOP_DIR $MID_DIR $BOTTOM_DIR"
+
+total=$((TOP_DIR*MID_DIR*BOTTOM_DIR*FILE_NUM))
+seq 0 $((total-1)) | shuf  | xargs -I {}  -P 800  bash -c "genfile {} $TOP_DIR $MID_DIR $BOTTOM_DIR $FILE_NUM"
+
+
+
