@@ -1,9 +1,9 @@
 #!/bin/bash
 
-TOP_DIR=4
-MID_DIR=5
-BOTTOM_DIR=10
-FILE_NUM=50000
+TOP_DIR=100
+MID_DIR=100
+BOTTOM_DIR=100
+FILE_NUM=100
 
 
 genfolder()
@@ -38,8 +38,7 @@ genfile()
    
     echo $index  $top $mid $bottom $file
  
-    
-    dd if=/dev/zero of=$top/$mid/$bottom/$file bs=1M count=50 > /dev/null 2>&1
+    dd if=/dev/zero of=$top/$mid/$bottom/$file bs=1M count=1 > /dev/null 2>&1
 }
 
 export  -f genfile 
