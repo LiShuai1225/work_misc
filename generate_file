@@ -1,9 +1,9 @@
 #!/bin/bash
 
-TOP_DIR=100
-MID_DIR=100
-BOTTOM_DIR=100
-FILE_NUM=100
+TOP_DIR=
+MID_DIR=
+BOTTOM_DIR=
+FILE_NUM=
 
 
 genfolder()
@@ -24,7 +24,7 @@ export -f genfolder
 
 genfile()
 {
-    
+
     local index=$1
     local TOP_DIR=$2
     local MID_DIR=$3
@@ -35,19 +35,51 @@ genfile()
     local mid=$((index%(MID_DIR*BOTTOM_DIR*FILE_NUM)/BOTTOM_DIR/FILE_NUM))
     local bottom=$((index%(MID_DIR*BOTTOM_DIR*FILE_NUM)%(BOTTOM_DIR*FILE_NUM)/FILE_NUM))
     local file=$((index%(MID_DIR*BOTTOM_DIR*FILE_NUM)%(BOTTOM_DIR*FILE_NUM)%FILE_NUM))
-   
+
     echo $index  $top $mid $bottom $file
- 
+
     dd if=/dev/zero of=$top/$mid/$bottom/$file bs=1M count=1 > /dev/null 2>&1
 }
 
 export  -f genfile 
+
+
+usage()
+{
+    echo "Usage: $0 -t top_dir_num -m mid_dir_num -b bottom_dir_num -f file_num" >&2
+    exit 1
+}
+
+while getopts :t:m:b:f:?h opt
+do
+    case $opt in 
+        t)  TOP_DIR=$OPTARG
+            ;;
+        m)  MID_DIR=$OPTARG
+            ;;
+        b)  BOTTOM_DIR=$OPTARG
+            ;;
+        f)  FILE_NUM=$OPTARG
+            ;;
+        h|?)  usage      
+            ;;
+        '?')
+            echo "$0:Invalid option -$OPTARG" >&2
+            usage
+            ;;
+    esac
+done
+
+shift $((OPTIND - 1))
+
+if [ -z "$TOP_DIR" -o -z "$MID_DIR" -o -z "$BOTTOM_DIR" -o -z "$FILE_NUM" ]
+then
+    usage
+fi
 
 folder_total=$((TOP_DIR*MID_DIR*BOTTOM_DIR))
 seq 0 $((folder_total-1)) | shuf | xargs  -I{}  -P 100 bash -c "genfolder {} $TOP_DIR $MID_DIR $BOTTOM_DIR"
 
 total=$((TOP_DIR*MID_DIR*BOTTOM_DIR*FILE_NUM))
 seq 0 $((total-1)) | shuf  | xargs -I {}  -P 800  bash -c "genfile {} $TOP_DIR $MID_DIR $BOTTOM_DIR $FILE_NUM"
-
-
 
