@@ -1,0 +1,83 @@
+#!/bin/bash 
+
+usage()
+{
+    echo "$0 -s src_folder -d dest_folder [ -l log_path ]"
+    exit 1
+}
+
+
+sleep_interval()
+{
+    local index=$1
+    if [ $1 -eq 1 ]
+    then
+        interval=$((60+RANDOM%10))
+    elif [ $index -eq 2 ]
+    then
+        interval=$((120+RANDOM%20))
+    else
+        interval=$((240+RANDOM%30))
+    fi
+
+    sleep $interval
+}
+
+
+
+
+src=
+dst=
+LOG=/var/log/rsync_folder.log
+
+while getopts :s:d:l?h opt
+do
+    case $opt in 
+        s)
+            src=$OPTARG
+            ;;
+        d)
+            dst=$OPTARG
+            ;;
+        l)
+            LOG=$OPTARG
+            ;;
+        '?')
+            echo "$0 Invalid option -$OPTARG" >&2
+            usage
+            ;;
+        h|?)
+            usage
+            ;;
+    esac
+done
+
+shift $((OPTIND - 1))
+
+if [ ! -d  "$src" ];then
+    echo "$src is not a folder"
+    usage
+fi
+
+if [ ! -d "$dst" ];then
+    echo "$dst is not a folder"
+    usage
+fi
+
+
+retry=0
+while true 
+do
+    rsync -avopg --exclude="lost+found" $src/* $dst >>$LOG  2>&1 
+    ret=$?
+    if [ $ret -ne 0 ]; then 
+        retry=$((retry+1))
+        if [ $retry -ge 4 ]; then
+            break
+        fi
+        echo `date`  "rsync return $ret I will retry ..." >> $LOG 2>&1
+        sleep_interval $retry
+    else 
+        break
+    fi 
+done
