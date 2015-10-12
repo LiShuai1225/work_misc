@@ -1,9 +1,10 @@
 #!/bin/bash
 
-TOP_DIR=
-MID_DIR=
-BOTTOM_DIR=
-FILE_NUM=
+usage()
+{
+    echo "Usage: $0 -t top_dir_num -m mid_dir_num -b bottom_dir_num -f file_num" >&2
+    exit 1
+}
 
 
 genfolder()
@@ -44,11 +45,10 @@ genfile()
 export  -f genfile 
 
 
-usage()
-{
-    echo "Usage: $0 -t top_dir_num -m mid_dir_num -b bottom_dir_num -f file_num" >&2
-    exit 1
-}
+TOP_DIR=
+MID_DIR=
+BOTTOM_DIR=
+FILE_NUM=
 
 while getopts :t:m:b:f:?h opt
 do
