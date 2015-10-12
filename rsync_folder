@@ -2,7 +2,7 @@
 
 usage()
 {
-    echo "$0 -s src_folder -d dest_folder [ -l log_path ]"
+    echo "Usage: $0 -s src_folder -d dest_folder [ -l log_path ]"
     exit 1
 }
 
@@ -53,6 +53,10 @@ do
 done
 
 shift $((OPTIND - 1))
+
+if [ -z "$src" -o -z "$dst" ]; then
+    usage
+fi
 
 if [ ! -d  "$src" ];then
     echo "$src is not a folder"
