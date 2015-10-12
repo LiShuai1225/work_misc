@@ -77,7 +77,7 @@ then
     usage
 fi
 
-
+# real work begin 
 folder_total=$((TOP_DIR*MID_DIR*BOTTOM_DIR))
 seq 0 $((folder_total-1)) | shuf | xargs  -I{}  -P 100 bash -c "genfolder {} $TOP_DIR $MID_DIR $BOTTOM_DIR"
 
