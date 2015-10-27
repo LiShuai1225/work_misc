@@ -30,7 +30,7 @@ src=
 dst=
 LOG=/var/log/rsync_folder.log
 
-while getopts :s:d:l?h opt
+while getopts :s:d:l:?h opt
 do
     case $opt in 
         s)
