@@ -2,7 +2,7 @@
 
 usage()
 {
-    echo "Usage: $0 -t top_dir_num -m mid_dir_num -b bottom_dir_num -f file_num" >&2
+    echo "Usage: $0 -t top_dir_num -m mid_dir_num -b bottom_dir_num [ -f file_num ] [ -p process_num ]"  >&2
     exit 1
 }
 
@@ -49,8 +49,9 @@ TOP_DIR=
 MID_DIR=
 BOTTOM_DIR=
 FILE_NUM=
+PARALLEL=500
 
-while getopts :t:m:b:f:?h opt
+while getopts :t:m:b:f:p:?h opt
 do
     case $opt in 
         t)  TOP_DIR=$OPTARG
@@ -60,6 +61,8 @@ do
         b)  BOTTOM_DIR=$OPTARG
             ;;
         f)  FILE_NUM=$OPTARG
+            ;;
+        p)  PARALLEL=$OPTARG
             ;;
         h|?)  usage      
             ;;
@@ -72,15 +75,17 @@ done
 
 shift $((OPTIND - 1))
 
-if [ -z "$TOP_DIR" -o -z "$MID_DIR" -o -z "$BOTTOM_DIR" -o -z "$FILE_NUM" ]
-then
+if [ -z "$TOP_DIR" -o -z "$MID_DIR" -o -z "$BOTTOM_DIR" ]; then
     usage
 fi
 
-# real work begin 
+# create folder first 
 folder_total=$((TOP_DIR*MID_DIR*BOTTOM_DIR))
 seq 0 $((folder_total-1)) | shuf | xargs  -I{}  -P 100 bash -c "genfolder {} $TOP_DIR $MID_DIR $BOTTOM_DIR"
 
-total=$((TOP_DIR*MID_DIR*BOTTOM_DIR*FILE_NUM))
-seq 0 $((total-1)) | shuf  | xargs -I {}  -P 800  bash -c "genfile {} $TOP_DIR $MID_DIR $BOTTOM_DIR $FILE_NUM"
 
+# if -f is set, create file
+if [ -n "$FILE_NUM" ]; then
+    total=$((TOP_DIR*MID_DIR*BOTTOM_DIR*FILE_NUM))
+    seq 0 $((total-1)) | shuf  | xargs -I {}  -P $PARALLEL  bash -c "genfile {} $TOP_DIR $MID_DIR $BOTTOM_DIR $FILE_NUM"
+fi
