@@ -215,7 +215,7 @@ int main(int argc,char* argv[])
         if(debug)
         {
             gettimeofday(&tv,NULL);
-            fprintf(stderr,"%ld.%06d [FILENAME = %s][LOOP %d] [offset = %ld] [READ_SIZE = %ld] RANDOM READ BEGIN\n",
+            fprintf(stderr,"%ld.%06d [FILENAME = %30s][LOOP %d] [offset = %15ld] [READ_SIZE = %15ld] RANDOM READ BEGIN\n",
                     tv.tv_sec,(int)tv.tv_usec, filename, i , offset, read_size);
         }
 
@@ -224,7 +224,7 @@ int main(int argc,char* argv[])
         if(debug)
         {
             gettimeofday(&tv,NULL);
-            fprintf(stderr,"%ld.%06d [FILENAME = %s][LOOP %d] [offset = %ld] [READ_SIZE = %ld] RANDOM READ END\n",
+            fprintf(stderr,"%ld.%06d [FILENAME = %30s][LOOP %d] [offset = %15ld] [READ_SIZE = %15ld] RANDOM READ END\n",
                     tv.tv_sec,(int)tv.tv_usec, filename, i , offset, read_size);
         }
 
