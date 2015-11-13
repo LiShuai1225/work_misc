@@ -14,11 +14,12 @@
 int READ_SIZE = 1024;
 int TIMES = 20;
 
-int BUFFER_SIZE=32*1024 ;
+int BUFFER_SIZE=128*1024 ;
+int debug = 0;
 
 void usage()
 {
-    fprintf(stdout,"Usage:file-seek -f filename -n times -s read_size\n");
+    fprintf(stdout,"Usage:file-seek -f filename -n times -s read_size -b buffer_size \n");
     return ;
 }
 
@@ -47,16 +48,16 @@ int random_read(int fd,off_t offset, void* buffer,size_t buffer_size, size_t cou
             }
         }
 
-       else if(n == 0) //EOF
-       {
-           break ;
-       }
-       else
-       {
-           current += n;
-           count -= n ; 
-           size = buffer_size < count? buffer_size:count;
-       }
+        else if(n == 0) //EOF
+        {
+            break ;
+        }
+        else
+        {
+            current += n;
+            count -= n ; 
+            size = buffer_size < count? buffer_size:count;
+        }
     }
 
     return ret ;
@@ -71,19 +72,21 @@ int main(int argc,char* argv[])
 
     int file_set_flag = 0;
     int long_index = 0;
-    
-    off_t offset , f_size ; 
-    int read_size = 0;
 
+    off_t offset , f_size ; 
+    size_t read_size = 0;
+    struct timeval tv ;
     int opt;
     static struct option option_long[] = {
-        {"read_size",required_argument,0,'s'},
-        {"times",required_argument,0,'n'},
         {"file",required_argument,0,'f'},
+        {"read_size",required_argument,0,'s'},
+        {"buffer_size",required_argument,0,'b'},
+        {"times",required_argument,0,'n'},
+        {"debug",required_argument,0,'d'},
     };
 
 
-    while((opt = getopt_long(argc,argv,"s:n:f:",option_long,&long_index)) != -1)
+    while((opt = getopt_long(argc,argv,"s:n:f:b:d",option_long,&long_index)) != -1)
     {
         switch(opt)
         {
@@ -96,6 +99,12 @@ int main(int argc,char* argv[])
         case 'f':
             snprintf(filename,1024,"%s",optarg);
             file_set_flag = 1;
+            break;
+        case 'b':
+            BUFFER_SIZE = atoi(optarg);
+            break;
+        case 'd':
+            debug = 1;
             break;
         default:
             usage();
@@ -132,10 +141,11 @@ int main(int argc,char* argv[])
         goto out1;
     }
 
+    srandom(getpid());
 
     for( i= 0 ; i < TIMES ;i++)
     {
-        offset = random() % f_size;
+        offset = (random()*100 + random()) % f_size;
         lseek(fd, offset, SEEK_SET);
 
         if(offset + READ_SIZE < f_size)
@@ -143,7 +153,22 @@ int main(int argc,char* argv[])
         else
             read_size = f_size - 1 - offset ;
 
+        if(debug)
+        {
+            gettimeofday(&tv,NULL);
+            fprintf(stderr,"%ld.%06d [FILENAME = %s][LOOP %d] [offset = %ld] [READ_SIZE = %ld] RANDOM READ BEGIN\n",
+                    tv.tv_sec,(int)tv.tv_usec, filename, i , offset, read_size);
+        }
+
         random_read(fd,offset,buffer,BUFFER_SIZE,read_size);
+
+        if(debug)
+        {
+            gettimeofday(&tv,NULL);
+            fprintf(stderr,"%ld.%06d [FILENAME = %s][LOOP %d] [offset = %ld] [READ_SIZE = %ld] RANDOM READ END\n",
+                    tv.tv_sec,(int)tv.tv_usec, filename, i , offset, read_size);
+        }
+
     }
 
 
