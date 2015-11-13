@@ -8,19 +8,71 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 
 
-
-int READ_SIZE = 1024;
+unsigned long READ_SIZE = 1024;
 int TIMES = 20;
 
-int BUFFER_SIZE=128*1024 ;
+unsigned long BUFFER_SIZE=128*1024 ;
 int debug = 0;
 
 void usage()
 {
     fprintf(stdout,"Usage:file-seek -f filename -n times -s read_size -b buffer_size \n");
     return ;
+}
+
+
+/* simple version of process_size,may overflow 
+ * improve it in the future */
+
+int  process_size(char* input,unsigned long* output)
+{
+    int base = 10;
+    char *str = input ;
+    char *endptr ;
+
+    unsigned long value = 0 ; 
+
+    value = strtoul(str, &endptr, base);
+    if(   (errno == ERANGE && (value == ULONG_MAX)) 
+       || (errno != 0 && value == 0)
+      )
+    {
+        return -1 ;
+    }
+
+    if(endptr == str)
+    {
+        return -2 ;
+    }
+
+    if(strlen(endptr) >= 2)
+    {
+        return -3;
+    }
+    
+    switch(*endptr)
+    {
+    case 'k':
+    case 'K':
+        *output = value*1024;
+        break;
+    case 'm':
+    case 'M':
+        *output = value * 1024 * 1024;
+        break;
+    case 'g':
+    case 'G':
+        *output = value * 1024 * 1024 * 1024;
+        break ;
+    default:
+        return -4 ;
+    }
+
+    return 0 ;
+    
 }
 
 int random_read(int fd,off_t offset, void* buffer,size_t buffer_size, size_t count)
@@ -65,7 +117,7 @@ int random_read(int fd,off_t offset, void* buffer,size_t buffer_size, size_t cou
 
 int main(int argc,char* argv[])
 {
-    int ret ;
+    int ret ,ret_b, ret_s;
     char filename[1024] ;
     int fd;
     int i ;
@@ -77,6 +129,8 @@ int main(int argc,char* argv[])
     size_t read_size = 0;
     struct timeval tv ;
     int opt;
+
+
     static struct option option_long[] = {
         {"file",required_argument,0,'f'},
         {"read_size",required_argument,0,'s'},
@@ -91,7 +145,7 @@ int main(int argc,char* argv[])
         switch(opt)
         {
         case 's':
-            READ_SIZE = atoi(optarg);
+            ret_s  = process_size(optarg,&READ_SIZE);
             break;
         case 'n':
             TIMES  = atoi(optarg);
@@ -101,7 +155,7 @@ int main(int argc,char* argv[])
             file_set_flag = 1;
             break;
         case 'b':
-            BUFFER_SIZE = atoi(optarg);
+            ret_b  = process_size(optarg, &BUFFER_SIZE);
             break;
         case 'd':
             debug = 1;
@@ -119,6 +173,11 @@ int main(int argc,char* argv[])
         return 1;
     }
 
+    if(ret_b || ret_s)
+    {
+        fprintf(stderr,"buffer_size or read_size is invalid\n");
+        return 2;
+    }
 
     fd = open(filename,O_RDONLY);
     if(fd == -1)
