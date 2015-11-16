@@ -72,7 +72,7 @@ fi
 retry=0
 while true 
 do
-    rsync -avopg --exclude="lost+found" $src/* $dst >>$LOG  2>&1 
+    rsync -avopg  -P --exclude="lost+found" $src/* $dst >>$LOG  2>&1 
     ret=$?
     if [ $ret -ne 0 ]; then 
         retry=$((retry+1))
