@@ -40,7 +40,7 @@ content=`ceph pg dump 2>/dev/null`
 
 for osd in $osd_list
 do
-    printf "%-3d        " $osd
+    printf "%3d        " $osd
     echo "$content" |grep "^$pool_id." | awk '{print $15}' |tr -d '[]'| awk -F, -v  osd=$osd  '{if($1==osd || $2==osd) {print $0} }' |wc -l 
 done
 
