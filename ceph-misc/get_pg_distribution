@@ -1,0 +1,46 @@
+#!/bin/bash
+
+usage()
+{
+    echo "reweight_pool_pg -p [ pool_id ]"
+    exit 1
+}
+
+
+pool_id=
+
+while getopts :p:?h opt
+do
+    case "$opt" in 
+        p)
+            pool_id=$OPTARG
+            ;;
+        '?')
+            echo "$0 Invalid option -$OPTARG" >&2
+            usage
+            ;;
+        h|?)
+            usage
+            ;;
+    esac
+done
+
+shift $((OPTIND - 1))
+
+if [ -z "$pool_id" ];then
+    echo "pool_id must indentify"
+    exit 2
+fi
+
+osd_list=`ceph osd tree |grep "osd." |awk '{print $3}' |awk -F. '{print $2}'|sort -n |uniq`
+
+echo  "OSD    PG_NUM"
+
+content=`ceph pg dump 2>/dev/null`
+
+for osd in $osd_list
+do
+    printf "%-3d        " $osd
+    echo "$content" |grep "^$pool_id." | awk '{print $15}' |tr -d '[]'| awk -F, -v  osd=$osd  '{if($1==osd || $2==osd) {print $0} }' |wc -l 
+done
+
