@@ -6,6 +6,14 @@ usage()
     exit 1
 }
 
+check_cluster_health()
+{
+    ceph health |grep -q -w pgs 
+    if [ $? -eq 0 ];then 
+        echo "cluster is not healthy now, quit"
+        exit 2
+    fi
+}
 
 pool_name=
 while getopts :p:?h opt
@@ -30,6 +38,8 @@ if [ -z "$pool_name" ];then
     echo "pool_name must indentify"
     exit 2
 fi
+
+check_cluster_health
 
 pg_num=`ceph osd pool get $pool_name pg_num |awk '{print $2}'`
 size=`ceph osd pool get $pool_name size |awk '{print $2}'`
