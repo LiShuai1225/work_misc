@@ -2,7 +2,7 @@
 
 usage()
 {
-    echo "reweight_pool_pg -p [ pool_id ]"
+    echo "get_pg_distribution -p [ pool_name ]"
     exit 1
 }
 
@@ -13,7 +13,7 @@ while getopts :p:?h opt
 do
     case "$opt" in 
         p)
-            pool_id=$OPTARG
+            pool_name=$OPTARG
             ;;
         '?')
             echo "$0 Invalid option -$OPTARG" >&2
@@ -27,20 +27,43 @@ done
 
 shift $((OPTIND - 1))
 
-if [ -z "$pool_id" ];then
-    echo "pool_id must indentify"
+if [ -z "$pool_name" ];then
+    echo "pool_name must indentify"
     exit 2
 fi
 
-osd_list=`ceph osd tree |grep "osd." |awk '{print $3}' |awk -F. '{print $2}'|sort -n |uniq`
+pg_num=`ceph osd pool get $pool_name pg_num |awk '{print $2}'`
+size=`ceph osd pool get $pool_name size |awk '{print $2}'`
+pool_id=`ceph df |awk  -v pool=$pool_name '{if($1==pool){print $2} }' `
+total_pgs=$((pg_num*size))
 
-echo  "OSD    PG_NUM"
 
+if [ $pool_name = "data" ];then
+    pool_name=default
+fi
+ceph osd tree > /tmp/osd_tree.out
+osd_list=`sed -n "/pool ${pool_name}$/,/pool/p" /tmp/osd_tree.out | grep "osd." | \
+          grep "up"  | awk '{print $3}' |awk -F. '{print $2}' |sort -n |uniq`
+
+if [ x"$osd_list" = x"" ]; then
+    echo "no osd in pool $pool_name, may be internal pool"
+    exit 2
+fi
+osd_num=`sed -n "/pool ${pool_name}$/,/pool/p" /tmp/osd_tree.out | grep "osd." | \
+         grep "up"  | awk '{print $3}' |awk -F. '{print $2}' |sort -n |wc -l`
+
+echo "OSD num = $osd_num    total pg num = $total_pgs"
+avg=`awk  -v osd=$osd_num -v total=$total_pgs 'BEGIN {print total/osd}' `
+printf "average pg num per osd = %f\n" $avg 
+
+echo "=================================================="
+printf  "%5s\t%10s\t%10s\n"  "OSD" "PG_NUM" "DEVIATION"
 content=`ceph pg dump 2>/dev/null`
 
 for osd in $osd_list
 do
-    printf "%3d        " $osd
-    echo "$content" |grep "^$pool_id." | awk '{print $15}' |tr -d '[]'| awk -F, -v  osd=$osd  '{if($1==osd || $2==osd) {print $0} }' |wc -l 
+    printf "%5d\t" $osd   
+    echo "$content" |grep "^$pool_id\." | awk '{print $15}' |tr -d '[]'| \
+         awk -F, -v osd=$osd -v avg=$avg -v osd_num=$osd_num '{ for(i=1;i<=osd_num;i++) {if($i==osd){num++}} } \
+                    END{printf("%10d\t%10.2f\n",num,(num-avg)*100/avg)}' 
 done
-
