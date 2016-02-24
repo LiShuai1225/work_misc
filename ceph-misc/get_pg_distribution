@@ -2,7 +2,7 @@
 
 usage()
 {
-    echo "get_pg_distribution -p [ pool_name ]"
+    >&2 echo "get_pg_distribution -p [ pool_name ]"
     exit 1
 }
 
@@ -10,7 +10,7 @@ check_cluster_health()
 {
     ceph health |grep -q -w pgs 
     if [ $? -eq 0 ];then 
-        echo "cluster is not healthy now, quit"
+        >&2 echo "cluster is not healthy now, quit"
         exit 2
     fi
 }
@@ -23,7 +23,7 @@ do
             pool_name=$OPTARG
             ;;
         '?')
-            echo "$0 Invalid option -$OPTARG" >&2
+            >&2 echo "$0 Invalid option -$OPTARG" >&2
             usage
             ;;
         h|?)
@@ -35,7 +35,7 @@ done
 shift $((OPTIND - 1))
 
 if [ -z "$pool_name" ];then
-    echo "pool_name must indentify"
+    >&2 echo "pool_name must indentify"
     exit 2
 fi
 
