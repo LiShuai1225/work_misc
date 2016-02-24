@@ -1,0 +1,113 @@
+#!/bin/bash
+
+
+usage_and_exit()
+{
+   >&2  echo "ezs3-reweight-by-pool -p pool_name"
+        exit 1
+}
+
+check_under()
+{
+    local ratio=$1
+    local threshold=-6
+    if [ `echo "$ratio < $threshold "|bc ` -eq 1 ];then
+        return 1
+    fi
+
+    return 0
+}
+
+check_above()
+{
+    local ratio=$1
+    local threshold=6
+    
+    if [ `echo "$ratio > $threshold" |bc ` -eq 1 ];then
+        return 1
+    fi
+
+    return 0
+    
+}
+
+process_above()
+{
+    local ratio=$1
+    local osd="osd.$2"
+    check_above $ratio 
+    need=$?
+
+    if [ $need -eq 1 ];then
+        weight=`ceph osd tree |grep -w $osd |uniq |awk '{print $2}'`
+        new_weight=`echo "$weight" |awk '{print $1*0.99}'`
+        echo "change $osd weight from $weight to $new_weight"
+        read choice
+        if [ x"$choice" = x"y" ];then
+            ceph osd crush reweight $osd  $new_weight
+        else 
+            echo "abort"
+        fi
+    fi
+ 
+}
+
+process_under()
+{
+
+    local ratio=$1
+    local osd="osd.$2"
+    check_under $ratio
+    need=$?
+
+    if [ $need -eq 1 ];then
+        weight=`ceph osd tree |grep -w "$osd" |uniq |awk '{print $2}'`
+        new_weight=`echo "$weight" |awk '{print $1*1.01}'`
+        echo "change $osd weight from $weight to $new_weight, Continue[y/N]"
+        read choice
+        if [ x"$choice" = x"y" ];then
+            ceph osd crush reweight $osd  $new_weight
+        else 
+            echo "abort"
+        fi
+    fi
+ 
+}
+
+pool_name=
+
+while getopts :p:?h opt
+do
+    case "$opt" in
+       p)
+         pool_name=$OPTARG
+         ;;
+       h|?)
+         usage_and_exit 
+         ;;
+    esac
+done 
+
+shift $((OPTIND - 1))
+
+if [ -z "$pool_name" ];then
+    usage_and_exit
+fi
+
+result=`get_pg_distribution -p $pool_name  |grep -v "===" |sort -nk 3`
+under_line=`echo "$result" |head -n 1`
+above_line=`echo "$result" |tail -n 1`
+
+if [ -z "$under_line" -o -z "$above_line" ];then
+    echo "no validate data ,quit"
+    exit 3
+fi
+
+under_ratio=`echo "$under_line" |awk '{print $3}'`
+under_osd=`echo "$under_line" |awk '{print $1}'`
+
+above_ratio=`echo "$above_line" |awk '{print $3}'`
+above_osd=`echo "$above_line" |awk '{print $1}'`
+
+process_under $under_ratio $under_osd
+process_above $above_ratio $above_osd
