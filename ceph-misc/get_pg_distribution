@@ -58,7 +58,7 @@ if [ x"$osd_list" = x"" ]; then
     echo "no osd in pool $pool_name, may be internal pool"
     exit 2
 fi
-osd_num=`sed -n "/pool ${pool_name}$/,/pool/p" /tmp/osd_tree.out | grep "osd." | \
+osd_num=`sed -n "/pool ${pool_name}$/,/pool /p" /tmp/osd_tree.out | grep "osd." | \
          grep "up"  | awk '{print $3}' |awk -F. '{print $2}' |sort -n |wc -l`
 
 echo "OSD num = $osd_num    total pg num = $total_pgs"
