@@ -51,7 +51,7 @@ if [ $pool_name = "data" ];then
     pool_name=default
 fi
 ceph osd tree > /tmp/osd_tree.out
-osd_list=`sed -n "/pool ${pool_name}$/,/pool/p" /tmp/osd_tree.out | grep "osd." | \
+osd_list=`sed -n "/pool ${pool_name}$/,/pool /p" /tmp/osd_tree.out | grep "osd." | \
           grep "up"  | awk '{print $3}' |awk -F. '{print $2}' |sort -n |uniq`
 
 if [ x"$osd_list" = x"" ]; then
